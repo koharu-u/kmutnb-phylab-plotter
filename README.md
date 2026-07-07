@@ -48,6 +48,7 @@ cargo run
 | `s` | Save CSV |
 | `o` | Open/load CSV |
 | `f` | Toggle best-fit line |
+| `X` | Swap plotted x-axis and y-axis mapping |
 | `G` | Toggle graph paper mode |
 | `S` | Open manual scale dialog |
 | `u` | Return to auto scale from the scale dialog |
@@ -63,7 +64,7 @@ cargo run
 3. Press `i`, type a value, then press `Enter`.
 4. Press `a` to add another measurement row.
 5. Press `G` for graph-paper mode.
-6. Press `S` to set manual graph-paper scale, such as fixed min/max and major divisions.
+6. Press `S` to set manual graph-paper scale, such as fixed min/max, major divisions, and minor divisions per major square.
 7. Press `f` to toggle the best-fit line.
 8. Press `g`, then `c`, then move the crosshair with `h`/`j`/`k`/`l` to read estimated graph coordinates.
 9. Press `s` to save.
@@ -86,15 +87,15 @@ Invalid or blank values in `x` or `y` are kept in the table but excluded from pl
 
 Graph paper mode prioritizes a clean grid for physics lab work:
 
-- minor grid divisions
-- stronger major grid divisions
+- subtle minor grid divisions
+- stronger major grid divisions every 10 minor divisions by default
 - stronger x/y axes
 - numeric labels at major divisions
 - selected point marker
 - optional best-fit line extended across the visible graph
-- manual scale fields for x min, x max, y min, y max, x major division, and y major division
+- manual scale fields for x min, x max, y min, y max, x major division, y major division, and minor divisions
 
-Unicode drawing characters are used when the terminal reports UTF-8 support. Otherwise the plot falls back to ASCII characters.
+Unicode Braille characters are used when the terminal reports UTF-8 support, giving each terminal cell a 2x4 virtual pixel grid. Otherwise the plot falls back to a cleaner major-grid-only ASCII view.
 
 ## Tests
 

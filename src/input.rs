@@ -55,6 +55,7 @@ fn handle_normal(app: &mut App, key: KeyEvent) -> bool {
                 "Crosshair disabled"
             });
         }
+        KeyCode::Char('X') => app.swap_plot_axes(),
         KeyCode::Char('S') => app.begin_scale_editor(),
         KeyCode::Char('u') => app.use_auto_scale(),
         KeyCode::Char('a') => app.add_row(),
@@ -252,4 +253,23 @@ fn move_scale_field(app: &mut App, delta: isize) {
 
 fn is_scale_char(ch: char) -> bool {
     ch.is_ascii_digit() || matches!(ch, '.' | '-' | '+' | 'e' | 'E')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::event::KeyModifiers;
+
+    #[test]
+    fn x_key_swaps_plot_axes() {
+        let mut app = App::default();
+
+        assert!(handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Char('X'), KeyModifiers::NONE)
+        ));
+
+        assert_eq!(app.plot_axis_labels(), ("y", "x"));
+        assert_eq!(app.status, "Swapped plot axes: x-axis y, y-axis x");
+    }
 }

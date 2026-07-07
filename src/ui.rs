@@ -141,14 +141,14 @@ fn render_graph(frame: &mut Frame, app: &App, area: Rect) {
         return;
     }
 
-    let points = app.data.points();
+    let points = app.plot_points();
     let scale = graph::compute_scale(&points, &app.scale);
     let crosshair = if app.crosshair_enabled {
         Some((app.crosshair_x, app.crosshair_y))
     } else {
         None
     };
-    let lines = graph::render_plot(
+    let text = graph::render_plot_lines(
         &points,
         scale,
         PlotOptions {
@@ -162,17 +162,15 @@ fn render_graph(frame: &mut Frame, app: &App, area: Rect) {
         },
     );
 
-    let text = lines.into_iter().map(Line::from).collect::<Vec<_>>();
     frame.render_widget(Paragraph::new(text), inner);
 }
 
 fn render_stats(frame: &mut Frame, app: &App, area: Rect) {
-    let points = app.data.points();
+    let points = app.plot_points();
     let scale = graph::compute_scale(&points, &app.scale);
     let regression = linear_regression(&points);
     let selected = app
-        .data
-        .selected_xy(app.selected_row)
+        .selected_plot_xy(app.selected_row)
         .map(|(x, y)| {
             format!(
                 "selected x={}, y={}",
@@ -238,7 +236,7 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
         .map(|path| path.display().to_string())
         .unwrap_or_else(|| "unsaved: lab_data.csv".to_string());
     let help = match app.mode {
-        Mode::Normal => "?: help | i edit | a row | A col | d delete | s save | o open | S scale | G paper | q quit",
+        Mode::Normal => "?: help | i edit | a row | A col | d delete | X swap axes | s save | o open | S scale | G paper | q quit",
         Mode::Scale => "Enter apply | u auto scale | Esc cancel | j/k field",
         _ => "Enter confirm | Esc cancel",
     };
@@ -263,11 +261,13 @@ fn render_help(frame: &mut Frame, area: Rect) {
         Line::from("Navigation: h/j/k/l move table selection or graph crosshair, t focus table, g focus graph"),
         Line::from("Data: i edit cell, a add row, A add column, d delete row, r rename column"),
         Line::from("Files: s save CSV, o open CSV, q quit"),
-        Line::from("Graph: f toggle best-fit line, G graph paper mode, c toggle crosshair"),
+        Line::from("Graph: f toggle best-fit line, X swap axes, G graph paper mode, c toggle crosshair"),
         Line::from("Scale: S set manual scale, u return to auto scale while in scale dialog"),
         Line::from(""),
         Line::from("Invalid or blank x/y values are shown in red in the table and ignored by fit/plot."),
-        Line::from("Manual scale fields: x min, x max, y min, y max, x major division, y major division."),
+        Line::from(
+            "Manual scale fields: x min, x max, y min, y max, x major, y major, minor divisions.",
+        ),
         Line::from(""),
         Line::from("Press Esc, ?, or q to close this help screen."),
     ];
@@ -303,13 +303,21 @@ fn render_text_popup(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_scale_popup(frame: &mut Frame, app: &App, area: Rect) {
-    let popup = centered_rect(area, 72, 12);
+    let popup = centered_rect(area, 72, 13);
     frame.render_widget(Clear, popup);
     let Some(editor) = &app.scale_editor else {
         return;
     };
 
-    let labels = ["x min", "x max", "y min", "y max", "x major", "y major"];
+    let labels = [
+        "x min",
+        "x max",
+        "y min",
+        "y max",
+        "x major",
+        "y major",
+        "minor div",
+    ];
     let lines = labels
         .iter()
         .enumerate()
@@ -352,16 +360,7 @@ fn graph_title(app: &App) -> String {
         "plot"
     };
     let fit = if app.show_fit { "fit on" } else { "fit off" };
-    let (x_label, y_label) = app
-        .data
-        .xy_columns()
-        .map(|(x_col, y_col)| {
-            (
-                app.data.columns[x_col].as_str(),
-                app.data.columns[y_col].as_str(),
-            )
-        })
-        .unwrap_or(("x", "y"));
+    let (x_label, y_label) = app.plot_axis_labels();
     format!("{mode}: x-axis {x_label}, y-axis {y_label}, {fit}")
 }
 
@@ -387,7 +386,7 @@ fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
 }
 
 fn is_invalid_xy(app: &App, row: usize, col: usize) -> bool {
-    let Some((x_col, y_col)) = app.data.xy_columns() else {
+    let Some((x_col, y_col)) = app.plot_columns() else {
         return false;
     };
 
